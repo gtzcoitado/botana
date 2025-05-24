@@ -14,14 +14,15 @@ yarn-error.log*
 # Build/output do front
 painel-ana/build/
 
-# Se você gerar um bundle ou pasta de saída no backend, ex:
+# Build/output do backend (se existir)
 # backend/build/
 
 # Arquivos temporários e caches específicos do bot
-backend/.wwwebjs_auth/
-backend/.wwwebjs_cache/
-backend/session/
-backend/tmp/
+# Comentei as linhas abaixo para incluir sessão do WhatsApp
+# backend/.wwebjs_auth/
+# backend/.wwebjs_cache/
+# backend/session/
+# backend/tmp/
 
 # Arquivos e pastas do sistema
 .DS_Store
