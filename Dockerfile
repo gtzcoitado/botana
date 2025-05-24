@@ -2,16 +2,19 @@
 # 1) Build stage
 #################################
 FROM node:18-alpine AS builder
-
-# 1.1) Clone todo o repositório
 WORKDIR /app
-COPY . .
 
-# 1.2) Entre na pasta do frontend
-WORKDIR /app/whats-bot-control-center
-
-# 1.3) Instale deps e rode o build
+# 1.1) Copia package.json + lockfile e instala deps
+COPY whats-bot-control-center/package*.json ./
 RUN npm ci
+
+# 1.2) Copia explicitamente o resto do frontend
+COPY whats-bot-control-center/vite.config.ts ./
+COPY whats-bot-control-center/index.html ./
+COPY whats-bot-control-center/public ./public
+COPY whats-bot-control-center/src ./src
+
+# 1.3) Gera o build
 RUN npm run build
 
 #################################
@@ -20,12 +23,10 @@ RUN npm run build
 FROM node:18-alpine AS runner
 WORKDIR /app
 
-# 2.1) Traga apenas o build pronto
-COPY --from=builder /app/whats-bot-control-center/dist ./dist
+# 2.1) Puxa o dist pronto
+COPY --from=builder /app/dist ./dist
 
-# 2.2) Instale o serve para arquivos estáticos
+# 2.2) Serve estático
 RUN npm install -g serve
-
-# 2.3) Exponha a porta 3000 e rode
 EXPOSE 3000
 CMD ["serve", "-s", "dist", "-l", "3000"]
