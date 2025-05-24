@@ -1,0 +1,27 @@
+# Ignora node_modules em qualquer subpasta
+**/node_modules/
+
+# Arquivos de ambiente
+.env
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Build/output do front
+painel-ana/build/
+
+# Se você gerar um bundle ou pasta de saída no backend, ex:
+# backend/build/
+
+# Arquivos temporários e caches específicos do bot
+backend/.wwwebjs_auth/
+backend/.wwwebjs_cache/
+backend/session/
+backend/tmp/
+
+# Arquivos e pastas do sistema
+.DS_Store

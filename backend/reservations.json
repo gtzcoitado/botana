@@ -1,0 +1,26 @@
+[
+  {
+    "id": "999ac564-c256-4100-9554-01235d00a00f",
+    "stage": "confirm",
+    "restaurant": "bom-paladar",
+    "name": "pode por nathan",
+    "party": 15,
+    "date": "2025-05-16T21:00:00.000Z"
+  },
+  {
+    "id": "9ea820df-9808-48a7-8d39-8179ebecb83c",
+    "stage": "confirm",
+    "name": "nathan",
+    "party": 14,
+    "date": "2025-05-16T17:00:00.000Z",
+    "restaurant": "bom-paladar"
+  },
+  {
+    "id": "2439909a-5c9f-4ab6-91d7-6d8acecb237e",
+    "stage": "confirm",
+    "restaurant": "grano",
+    "name": "Davih",
+    "party": 10,
+    "date": "2025-05-18T22:00:00.000Z"
+  }
+]
