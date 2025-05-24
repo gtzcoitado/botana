@@ -15,14 +15,14 @@ mongoose.connect(process.env.MONGODB_URI)
     process.exit(1);
   });
 
-// ——— Schema de conteúdo ———
+// ——— Schema ———
 const Restaurant = mongoose.model('Restaurant', new mongoose.Schema({
   key:  { type: String, unique: true },
   name: String,
   data: mongoose.Mixed
 }));
 
-// ——— Helper OpenAI ———
+// ——— OpenAI helper ———
 async function callOpenAI(systemPrompt, userText) {
   const res = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -40,10 +40,11 @@ async function callOpenAI(systemPrompt, userText) {
   return res.data.choices[0].message.content.trim();
 }
 
-// ——— WhatsApp Web, usando sessão pré-salva ———
+// ——— WhatsApp Web usando session/ ———
 const client = new Client({
   authStrategy: new LocalAuth({
-    dataPath: path.join(__dirname, '.wwebjs_auth')
+    dataPath: path.join(__dirname, 'session'),
+    clientId: 'ana'
   }),
   puppeteer: {
     headless: true,
@@ -60,11 +61,11 @@ client.on('message', async msg => {
 
   const systemPrompt = `
 Você é a Ana, atendente das pizzarias “Bom Paladar”, “Casa da Vovó” e “Grano”.
-Responda de forma natural, como um humano. Não mencione IA.
+Fale como um humano, sem mencionar IA.
 Se não souber algo, responda:
 "Ainda não sei disso, mas vou encaminhar para nossos desenvolvedores."
 
-Dados disponíveis:
+Dados:
 ${JSON.stringify(infoMap,null,2)}
   `.trim();
 
@@ -76,7 +77,7 @@ ${JSON.stringify(infoMap,null,2)}
 
 client.initialize();
 
-// ——— Express API para o front ———
+// ——— Express API ———
 const app = express();
 app.use(cors(), express.json());
 
