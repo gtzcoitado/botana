@@ -1,2 +1,3 @@
-2025/05/16-15:48:18.826 9e3c Creating DB C:\Users\nthn0\OneDrive\Documentos\CODIGOS\bot-ana\backend\session\session-ana\Default\shared_proto_db\metadata since it was missing.
-2025/05/16-15:48:18.835 9e3c Reusing MANIFEST C:\Users\nthn0\OneDrive\Documentos\CODIGOS\bot-ana\backend\session\session-ana\Default\shared_proto_db\metadata/MANIFEST-000001
+2025/05/24-14:21:47.780 7688 Reusing MANIFEST C:\Users\nthn0\OneDrive\Documentos\CODIGOS\bot-ana\backend\session\session-ana\Default\shared_proto_db\metadata/MANIFEST-000001
+2025/05/24-14:21:47.783 7688 Recovering log #3
+2025/05/24-14:21:47.784 7688 Reusing old log C:\Users\nthn0\OneDrive\Documentos\CODIGOS\bot-ana\backend\session\session-ana\Default\shared_proto_db\metadata/000003.log 
