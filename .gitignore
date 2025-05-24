@@ -17,8 +17,7 @@ painel-ana/build/
 # Build/output do backend (se existir)
 # backend/build/
 
-# Arquivos temporários e caches específicos do bot
-# Comentei as linhas abaixo para incluir sessão do WhatsApp
+# **Comentado** para incluir sua sessão WhatsApp Web
 # backend/.wwebjs_auth/
 # backend/.wwebjs_cache/
 # backend/session/
