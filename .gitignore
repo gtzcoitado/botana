@@ -1,27 +1,23 @@
-# Ignora node_modules em qualquer subpasta
+# ignore node_modules
 **/node_modules/
 
-# Arquivos de ambiente
+# env files
 .env
 .env.*.local
 
-# Logs
+# logs
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 *.log
 
-# Build/output do front
+# front build
 painel-ana/build/
 
-# Build/output do backend (se existir)
-# backend/build/
-
-# **Comentado** para incluir sua sessão WhatsApp Web
+# backend temp/caches (comentadas para incluir sessão)
 # backend/.wwebjs_auth/
 # backend/.wwebjs_cache/
 # backend/session/
 # backend/tmp/
 
-# Arquivos e pastas do sistema
+# system
 .DS_Store

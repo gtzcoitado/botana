@@ -1,32 +1,28 @@
-// index.js
+// backend/index.js
 require('dotenv').config();
 
-const path     = require('path');
-const express  = require('express');
-const cors     = require('cors');
-const axios    = require('axios');
-const qrcode   = require('qrcode-terminal');
+const path       = require('path');
+const express    = require('express');
+const cors       = require('cors');
+const axios      = require('axios');
+const qrcode     = require('qrcode-terminal');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const mongoose = require('mongoose');
+const mongoose   = require('mongoose');
 
 // ——— Conexão com MongoDB ———
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser:    true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✅ MongoDB conectado'))
-.catch(err => {
-  console.error('❌ Erro conectando ao MongoDB:', err);
-  process.exit(1);
-});
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB conectado'))
+  .catch(err => {
+    console.error('❌ Erro conectando ao MongoDB:', err);
+    process.exit(1);
+  });
 
-// ——— Schema e Model de “conteúdo” das pizzarias ———
-const RestaurantSchema = new mongoose.Schema({
+// ——— Schema de “conteúdo” das pizzarias ———
+const Restaurant = mongoose.model('Restaurant', new mongoose.Schema({
   key:  { type: String, unique: true },
   name: String,
-  data: mongoose.Mixed        // aqui você guarda o que quiser: texto, JSON, cards…
-});
-const Restaurant = mongoose.model('Restaurant', RestaurantSchema);
+  data: mongoose.Mixed
+}));
 
 // ——— Helper OpenAI ———
 async function callOpenAI(systemPrompt, userText) {
@@ -46,12 +42,9 @@ async function callOpenAI(systemPrompt, userText) {
   return res.data.choices[0].message.content.trim();
 }
 
-// ——— Inicialização do WhatsApp Web ———
+// ——— WhatsApp Web (usa ./.wwebjs_auth por padrão) ———
 const client = new Client({
-  authStrategy: new LocalAuth({
-    dataPath: path.resolve(__dirname, process.env.SESSION_PATH || 'session'),
-    clientId: 'assistant'
-  }),
+  authStrategy: new LocalAuth(), 
   puppeteer: {
     headless: true,
     args: ['--no-sandbox','--disable-setuid-sandbox']
@@ -59,87 +52,77 @@ const client = new Client({
 });
 
 client.on('qr', qr => {
-  console.log('📲 Escaneie este QR (só na 1ª vez):');
+  // não vai aparecer em produção, pois já há sessão em .wwebjs_auth
+  console.log('📲 QR GERADO (local):'); 
   qrcode.generate(qr, { small: true });
 });
 client.on('ready', () => console.log('✅ WhatsApp Web pronto'));
 
-// ——— Handler de mensagens ———
 client.on('message', async msg => {
   const text = (msg.body||'').trim();
-  const chat = msg.from;
-
-  // Carrega todos os dados que temos de cada pizzaria
+  // carrega todos os dados das pizzarias
   const restos = await Restaurant.find().lean();
   const infoMap = {};
   restos.forEach(r => infoMap[r.key] = r.data);
 
-  // Monta um prompt que faz com que o modelo responda como humano, sem referências a IA
   const systemPrompt = `
 Você é a Ana, atendente virtual das pizzarias
 “Bom Paladar”, “Casa da Vovó” e “Grano”.
-Fale sempre de maneira natural, como um atendente humano:
-- Não mencione IA, modelos, ou que você é um robô.
-- Seja gentil, direto e verdadeiro.
-- Se a pergunta **não** puder ser respondida com os dados abaixo, diga:
-  "Ainda não sei disso, mas vou encaminhar para nossos desenvolvedores."
-  
-Aqui estão os dados disponíveis (JSON):
-${JSON.stringify(infoMap, null, 2)}
-`.trim();
+Fale sempre de maneira natural, sem mencionar IA ou robôs.
+Se não souber algo, responda:
+"Ainda não sei disso, mas vou encaminhar para nossos desenvolvedores."
 
+Aqui estão os dados disponíveis:
+${JSON.stringify(infoMap, null, 2)}
+  `.trim();
+
+  let reply;
   try {
-    const answer = await callOpenAI(systemPrompt, text);
-    return msg.reply(answer);
-  } catch (err) {
-    console.error('⭐ Erro OpenAI:', err.message);
-    return msg.reply('Desculpe, tive um problema interno. Tente novamente mais tarde.');
+    reply = await callOpenAI(systemPrompt, text);
+  } catch {
+    reply = 'Desculpe, ocorreu um erro interno. Tente mais tarde.';
   }
+  msg.reply(reply);
 });
 
 client.initialize();
 
-// ——— API Express para o front-end ———
+// ——— Express API (para o front) ———
 const app = express();
 app.use(cors(), express.json());
 
-// Lista as pizzarias e os dados associados
+// lista pizzas
 app.get('/api/restaurants', async (_, res) => {
   const list = await Restaurant.find().select('key name').lean();
   res.json(list);
 });
 
-// Retorna o conteúdo completo de uma pizzaria
+// dados de 1 pizzaria
 app.get('/api/restaurants/:key', async (req, res) => {
   const r = await Restaurant.findOne({ key: req.params.key }).lean();
   if (!r) return res.status(404).json({ error: 'Não encontrada' });
   res.json(r);
 });
 
-// Cria ou atualiza os dados de uma pizzaria
+// cria/atualiza dados
 app.post('/api/restaurants/:key', async (req, res) => {
-  const key  = req.params.key;
-  const name = req.body.name;
-  const data = req.body.data;
-  if (!name || !data) {
-    return res.status(400).json({ error: 'name e data são obrigatórios' });
-  }
+  const { name, data } = req.body;
+  if (!name || !data) return res.status(400).json({ error: 'name e data são obrigatórios' });
   await Restaurant.findOneAndUpdate(
-    { key },
-    { key, name, data },
+    { key: req.params.key },
+    { key: req.params.key, name, data },
     { upsert: true }
   );
   res.json({ ok: true });
 });
 
-// Status do bot
+// status do bot
 app.get('/api/bot/status', (_, res) => {
-  const running = client.info && client.info.wid;
-  res.json({ running: !!running });
+  res.json({ running: !!(client.info && client.info.wid) });
 });
 
-// Inicia o servidor HTTP
+// start HTTP server
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () =>
-  console.log(`🚀 API rodando na porta ${PORT}`)
-);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 API rodando na porta ${PORT}`);
+});
