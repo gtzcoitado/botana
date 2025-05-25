@@ -128,14 +128,6 @@ ${infosText}
 
 // 5) Express + rotas
 
-app.use(cors({
-  origin: [
-    'https://site-production-2a18.up.railway.app/',
-    // (pode adicionar também http://localhost:3000 para testes locais)
-  ],
-  credentials: true,
-}));
-
 const app = express();
 app.use(cors());           // ← habilita CORS para TODAS as origens
 app.use(express.json());
