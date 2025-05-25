@@ -21,3 +21,10 @@ painel-ana/build/
 
 # system
 .DS_Store
+
+# WhatsApp session e cache
+session/
+.webjs_cache/
+
+backend/session/
+backend/.webjs_cache/
