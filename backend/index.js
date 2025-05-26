@@ -19,7 +19,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   useUnifiedTopology: true,
 })
 .then(() => console.log('✅ MongoDB conectado'))
-.catch(err => { 
+.catch(err => {
   console.error('❌ falha MongoDB', err);
   process.exit(1);
 });
@@ -30,9 +30,9 @@ const InfoSchema = new mongoose.Schema({
   content:  String,
   category: String
 },{ timestamps:true });
-InfoSchema.set('toJSON',{ 
-  virtuals:true, 
-  versionKey:false, 
+InfoSchema.set('toJSON',{
+  virtuals:true,
+  versionKey:false,
   transform:(_,ret)=>{ ret.id=ret._id; delete ret._id; }
 });
 
@@ -48,9 +48,9 @@ const BranchSchema = new mongoose.Schema({
   botInstructions:  String,
   infos:            [InfoSchema]
 },{ timestamps:true });
-BranchSchema.set('toJSON',{ 
-  virtuals:true, 
-  versionKey:false, 
+BranchSchema.set('toJSON',{
+  virtuals:true,
+  versionKey:false,
   transform:(_,ret)=>{ ret.id=ret._id; delete ret._id; }
 });
 
@@ -76,6 +76,10 @@ async function callOpenAI(systemPrompt, userText){
 
 // 4) gerencia clientes WhatsApp
 const clients = new Map();
+// controla saudações para evitar spam: primeiro contato + reset 1h
+const greetedMap = new Map();
+const GREET_RESET_MS = 60 * 60 * 1000; // 1 hora
+
 function getClient(branchId){
   if(!clients.has(branchId)){
     const client = new Client({
@@ -88,17 +92,28 @@ function getClient(branchId){
       ]}
     });
     const w = { client, ready:false, branchId };
-    client.on('ready', ()=>{ 
-      w.ready = true; 
-      console.log(`✅ WhatsApp pronto (${branchId})`); 
+    client.on('ready', ()=>{
+      w.ready = true;
+      console.log(`✅ WhatsApp pronto (${branchId})`);
     });
     client.on('auth_failure', err => console.error(`❌ auth_fail (${branchId}):`, err));
-    client.on('disconnected',    ()=>{ 
-      w.ready = false; 
-      console.warn(`⚠️ desconectado (${branchId})`); 
+    client.on('disconnected',    ()=>{
+      w.ready = false;
+      console.warn(`⚠️ desconectado (${branchId})`);
     });
     client.on('message', async msg => {
+      if(msg.fromMe) return;
       if(!w.ready) return;
+
+      // primeira interação: saudação única
+      const now = Date.now();
+      const last = greetedMap.get(msg.from);
+      if(!last || (now - last) > GREET_RESET_MS){
+        greetedMap.set(msg.from, now);
+        await msg.reply('Olá! Como posso ajudar você hoje?');
+      }
+
+      // fluxo normal de atendimento
       const b = await Branch.findById(branchId).lean();
       if(!b || !b.active) return;
       const infosText = b.infos
@@ -118,7 +133,7 @@ ${infosText}
       } catch {
         reply = 'Desculpe, ocorreram problemas internos. Tente mais tarde.';
       }
-      msg.reply(reply);
+      await msg.reply(reply);
     });
     client.initialize();
     clients.set(branchId, w);
@@ -127,9 +142,8 @@ ${infosText}
 }
 
 // 5) Express + rotas
-
 const app = express();
-app.use(cors());           // ← habilita CORS para TODAS as origens
+app.use(cors());
 app.use(express.json());
 
 // conectar via QR
@@ -195,6 +209,6 @@ app.delete('/api/branches/:id/infos/:infoId', async (req,r) => {
 
 // inicializa o servidor
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', ()=>
+app.listen(PORT, '0.0.0.0', () =>
   console.log('🚀 API rodando na porta', PORT)
 );
