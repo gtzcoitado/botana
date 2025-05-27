@@ -45,7 +45,7 @@ const BranchSchema = new mongoose.Schema({
   responsible:      String,
   workingHours:     String,
   active:           { type: Boolean, default: true },
-  botInstructions:  String,
+  botInstructions:  String,      // instruções mutáveis vindas do front
   infos:            [InfoSchema]
 }, { timestamps: true });
 BranchSchema.set('toJSON', {
@@ -112,7 +112,6 @@ function getClient(branchId) {
     client.on('disconnected', () => {
       w.ready = false;
       console.warn(`⚠️ desconectado (${branchId})`);
-      // opcional: limpar cache para refazer autenticação
       qrCache.set(branchId, null);
     });
 
@@ -127,12 +126,21 @@ function getClient(branchId) {
         .map(i => `- ${i.title} (${i.category}): ${i.content}`)
         .join('\n') || 'Nenhuma.';
 
-      // instrução básica (ignora botInstructions antigas)
-      const basePrompt = `Você é a atendente virtual da filial ${b.name}. Ao receber a mensagem do cliente, responda com uma única mensagem que inclua saudação e resposta direta.`;
+      // puxa instruções mutáveis do banco, ou usa um fallback padrão
+      const instructions = (b.botInstructions && b.botInstructions.trim()) || `
+Você é a atendente virtual da filial ${b.name}.
+Seu objetivo é oferecer um atendimento acolhedor, simpático e direto ao ponto,
+sempre utilizando as informações fornecidas no banco de dados.Ao receber a mensagem do cliente, faça o seguinte:
+1. Leia atentamente o texto do cliente e entenda o contexto.
+2. Responda com UMA ÚNICA mensagem que comece com saudação adequada.
+3. Seja coerente e diretamente trate o que o cliente perguntou ou comentou.
+4. Use um tom amigável e profissional, sem respostas genéricas.
+      `.trim();
 
       // monta o system prompt completo
       const systemPrompt = `
-${basePrompt}
+${instructions}
+
 Localização: ${b.city}, ${b.state}${b.address ? `, ${b.address}` : ''}.
 Horário: ${b.workingHours || 'não informado'}.
 
